@@ -206,67 +206,73 @@ class SubscriptionCore: AzSVTBase
 
 		$SubAdmins = @();
 		$SubAdmins += $this.RoleAssignments | Where-Object { $_.RoleDefinitionName -eq 'CoAdministrator' `
-																				-or $_.RoleDefinitionName -like '*ServiceAdministrator*' `
-																				-or ($_.RoleDefinitionName -eq 'Owner' -and $_.Scope -eq $scope)}
-		if($this.HasGraphAPIAccess -eq $false)
+				-or $_.RoleDefinitionName -like '*ServiceAdministrator*' `
+				-or ($_.RoleDefinitionName -eq 'Owner' -and $_.Scope -eq $scope) }
+		if ($this.HasGraphAPIAccess -eq $false)
 		{
 			$this.PublishCustomMessage("Current Azure login context doesn't have graph api access");
 		}
 		$ClientSubAdmins = @()
 		$ApprovedSubAdmins = @()
 
-		$SubAdmins | ForEach-Object{
+		$SubAdmins | ForEach-Object {
 			$tempAdmin = $_
 			$objId = $_.ObjectId
 			$isApprovedAdmin = $false
-			foreach($admin in $this.ApprovedAdmins)
+			foreach ($admin in $this.ApprovedAdmins)
 			{
 				$tempObjId = $admin.ObjectId
-				if($admin.ObjectType -eq "ServicePrincipal")
+				if ($admin.ObjectType -eq "ServicePrincipal")
 				{
 					$out = $null
 					#do we need to check for scope
-					try { $out = $this.RoleAssignments | Where-Object { $_.ObjectId -eq $admin.ObjectId} } catch {}
-					if($null -ne $out)
+					try { $out = $this.RoleAssignments | Where-Object { $_.ObjectId -eq $admin.ObjectId } } catch { }
+					if ($null -ne $out)
 					{
 						$tempObjId = $out[0].ObjectId
 					}
 				}
-				if($objId -eq $tempObjId)
+				if ($objId -eq $tempObjId)
 				{
 					$ApprovedSubAdmins += $tempAdmin
 					$isApprovedAdmin = $true
 				}
 			}
-			if(-not $isApprovedAdmin)
+			if (-not $isApprovedAdmin)
 			{
 				$ClientSubAdmins += $tempAdmin
 			}
 		}		
 
 		$stateData = @{
-			Owners = @();
+			Owners   = @();
 			CoAdmins = @();
 		};
 
-		$stateData.Owners += $ClientSubAdmins | Where-Object { -not ($_.RoleDefinitionName -eq 'CoAdministrator' -or $_.RoleDefinitionName -like '*ServiceAdministrator*') };
-		$stateData.CoAdmins += $ClientSubAdmins | Where-Object { $_.RoleDefinitionName -eq 'CoAdministrator' -or $_.RoleDefinitionName -like '*ServiceAdministrator*' };
+		#TODO: Edited code for testing, revert this change
+		$OwnersTemp = $ClientSubAdmins | Where-Object { -not ($_.RoleDefinitionName -eq 'CoAdministrator' -or $_.RoleDefinitionName -like '*ServiceAdministrator*') } | Select SignInName;
+		$CoAdminTemp = $ClientSubAdmins | Where-Object { $_.RoleDefinitionName -eq 'CoAdministrator' -or $_.RoleDefinitionName -like '*ServiceAdministrator*' } | Select SignInName;
+		$stateData.Owners += $OwnersTemp
+		$stateData.CoAdmins += $CoAdminTemp
 
 		$controlResult.SetStateData("All Subscription Owners/CoAdministrators/ServiceAdministrators (excludes accounts from central team)", $stateData);
 
-		if(($ApprovedSubAdmins | Measure-Object).Count -gt 0)
+		if (($ApprovedSubAdmins | Measure-Object).Count -gt 0)
 		{
 			$controlResult.AddMessage("The following $($ApprovedSubAdmins.Count) admin/owner (approved) accounts are from a central team:`r`n", ($ApprovedSubAdmins | Select-Object DisplayName, SignInName, ObjectType, ObjectId));
 		}		
 
-		if($ClientSubAdmins.Count -gt 0)
+		if ($ClientSubAdmins.Count -gt 0)
 		{
 			$controlResult.VerificationResult = [VerificationResult]::Verify
-			$controlResult.AddMessage("Please review the list of Admins and Owners for your subscription. Make sure to remove any that do not require persistent access. (Note: Owners that are part of a central approved list are to be retained. They are not listed above.)",($ClientSubAdmins | Select-Object DisplayName,SignInName,ObjectType, ObjectId));			
+			
+			$controlResult.AddMessage("Please review the list of Admins and Owners for your subscription. Make sure to remove any that do not require persistent access. (Note: Owners that are part of a central approved list are to be retained. They are not listed above.)", ($stateData));			
+			# $controlResult.AddMessage("Please review the list of Admins and Owners for your subscription. Make sure to remove any that do not require persistent access. (Note: Owners that are part of a central approved list are to be retained. They are not listed above.)", ($ClientSubAdmins | Select-Object DisplayName, SignInName, ObjectType, ObjectId));			
 		}
-		else {
+		else
+		{
 			$controlResult.AddMessage([VerificationResult]::Passed,
-										"No persistent owners/admins found on your subscription.");
+				"No persistent owners/admins found on your subscription.");
 		}
 
 		return $controlResult;

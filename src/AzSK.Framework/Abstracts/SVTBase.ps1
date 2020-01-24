@@ -816,6 +816,7 @@ class SVTBase: AzSKRoot
 			
 			$this.GetDataFromSubscriptionReport($eventContext);
 
+			#NikNote: Read resource attestation details from storage
 			$resourceStates = $this.GetResourceState()			
 			if(($resourceStates | Measure-Object).Count -ne 0)
 			{
@@ -824,12 +825,14 @@ class SVTBase: AzSKRoot
 					$currentControlStateValue = $_;
 					if($null -ne $currentControlStateValue)
 					{
+						#NikNotes: Check if attestation has expired
 						if($this.IsStateActive($eventContext, $currentControlStateValue))
 						{
 							$controlState += $currentControlStateValue;
 						}
 						else
 						{
+							#NikNotes: If attestation has expired, delete its data from storage
 							#add to the dirty state list so that it can be removed later
 							$this.DirtyResourceStates += $currentControlStateValue;
 						}
@@ -867,23 +870,48 @@ class SVTBase: AzSKRoot
 					$currentItem.EnableFixControl = $false;
 				}
 
+				#NikNote: Here we are checking state data
+				#NikNote: Q? DataObjectProperties is empty. What is the purpose of $eventContext.ControlItem.DataObjectProperties? 
+				#NikNote: TODO: custom code
+
+				Write-Host "Original current state:"
+				$currentItem.StateManagement.CurrentStateData.DataObject | ConvertTo-Json | Out-Host
+
+				$CurrentStateBackwardCompatibleDataObject = $null;
+				if ($currentItem.StateManagement.CurrentStateData -and $currentItem.StateManagement.CurrentStateData.DataObject -and $eventContext.ControlItem.BackwardCompatibleDataObjectProperties)
+				{
+					$CurrentStateBackwardCompatibleDataObject = [Helpers]::SelectMembers($currentItem.StateManagement.CurrentStateData.DataObject, $eventContext.ControlItem.BackwardCompatibleDataObjectProperties);
+				}
+
+				Write-Host "Backward compatible current state:"
+				$CurrentStateBackwardCompatibleDataObject | ConvertTo-Json  | Out-Host
+
 				if($currentItem.StateManagement.CurrentStateData -and $currentItem.StateManagement.CurrentStateData.DataObject -and $eventContext.ControlItem.DataObjectProperties)
 				{
 					$currentItem.StateManagement.CurrentStateData.DataObject = [Helpers]::SelectMembers($currentItem.StateManagement.CurrentStateData.DataObject, $eventContext.ControlItem.DataObjectProperties);
 				}
 
+				Write-Host "Filtered current state by data object property:"
+				$currentItem.StateManagement.CurrentStateData.DataObject | ConvertTo-Json  | Out-Host
+
 				if($controlState.Count -ne 0)
 				{
 					# Process the state if its available
+					#NikNote: What is ChildResourceName here?
 					$childResourceState = $controlState | Where-Object { $_.ChildResourceName -eq  $currentItem.ChildResourceName } | Select-Object -First 1;
 					if($childResourceState)
 					{
 						# Skip passed ones from State Management
 						if($currentItem.ActualVerificationResult -ne [VerificationResult]::Passed)
 						{
+						
+							#NikNote: State data is compared only in ActualVerificationResult state same.
+							#NikNote: childResourceState here is retrieved from storage
+							#NikNote: currentItem here is populated during current execution
 							#compare the states
 							if(($childResourceState.ActualVerificationResult -eq $currentItem.ActualVerificationResult) -and $childResourceState.State)
 							{
+								#NikNote: set attestation status based on state set by user (fetched from storage) 
 								$currentItem.StateManagement.AttestedStateData = $childResourceState.State;
 
 								# Compare dataobject property of State
@@ -895,10 +923,17 @@ class SVTBase: AzSKRoot
 
 										try
 										{
+											#NikNote: ** attestation compare **
+											#NikNote: TODO: check where is AttestComparisionType being initiated
+											#NikNote: 'AttestComparisionType' - To check NumLesserOrEqual
 											# Objects match, change result based on attestation status
-											if($eventContext.ControlItem.AttestComparisionType -and $eventContext.ControlItem.AttestComparisionType -eq [ComparisionType]::NumLesserOrEqual)
+											if ($eventContext.ControlItem.AttestComparisionType -and $eventContext.ControlItem.AttestComparisionType -eq [ComparisionType]::NumLesserOrEqual)
 											{
-												if([Helpers]::CompareObject($childResourceState.State.DataObject, $currentStateDataObject, $true,$eventContext.ControlItem.AttestComparisionType))
+												#NikNote: Consider attestation result only when state data object matches
+												#NikNote: ModifyControlResult - Updates verification result based on attestation state
+
+                                                #NikNote: TODO: Test this flow for DataObjectProperties  
+												if ([Helpers]::CompareObject($childResourceState.State.DataObject, $currentStateDataObject, $true, $eventContext.ControlItem.AttestComparisionType))
 												{
 													$this.ModifyControlResult($currentItem, $childResourceState);
 												}
@@ -906,9 +941,34 @@ class SVTBase: AzSKRoot
 											}
 											else
 											{
-												if([Helpers]::CompareObject($childResourceState.State.DataObject, $currentStateDataObject, $true))
+												#NikNote: Consider attestation result only when state data object matches
+												#NikNote: ModifyControlResult - Updates verification result based on attestation state
+												
+												Write-Host "Original state data from storage:"
+												$childResourceState.State.DataObject | ConvertTo-Json | Out-Host
+												
+												#NikNote: TODO: Updated code
+												$ControlStateBackwardCompatibleDataObject = $null;
+												if ($childResourceState.State -and $childResourceState.State.DataObject -and $eventContext.ControlItem.BackwardCompatibleDataObjectProperties)
 												{
-														$this.ModifyControlResult($currentItem, $childResourceState);
+													$ControlStateBackwardCompatibleDataObject = [Helpers]::SelectMembers($childResourceState.State.DataObject, $eventContext.ControlItem.BackwardCompatibleDataObjectProperties);
+												}
+
+												Write-Host "Backward compatible state data from storage:"
+												$ControlStateBackwardCompatibleDataObject | ConvertTo-Json | Out-Host
+
+												if ($childResourceState.State -and $childResourceState.State.DataObject -and $eventContext.ControlItem.DataObjectProperties)
+												{
+													$childResourceState.State.DataObject = [Helpers]::SelectMembers($childResourceState.State.DataObject, $eventContext.ControlItem.DataObjectProperties);
+												}
+
+												Write-Host "Filtered state data (from storage) by data object property:"
+												$childResourceState.State.DataObject | ConvertTo-Json | Out-Host
+
+												if (([Helpers]::CompareObject($childResourceState.State.DataObject, $currentStateDataObject, $true)) -or `
+												    ([Helpers]::CompareObject($ControlStateBackwardCompatibleDataObject, $CurrentStateBackwardCompatibleDataObject, $true)))
+												{
+													$this.ModifyControlResult($currentItem, $childResourceState);
 												}
 											}
 										}
@@ -924,12 +984,14 @@ class SVTBase: AzSKRoot
 									{
 										if($null -eq $currentItem.StateManagement.CurrentStateData.DataObject)
 										{
+											#Niknote: 
 											# No object is persisted, change result based on attestation status
 											$this.ModifyControlResult($currentItem, $childResourceState);
 										}
 									}
 									else
 									{
+										#Niknote: 
 										# No object is persisted, change result based on attestation status
 										$this.ModifyControlResult($currentItem, $childResourceState);
 									}

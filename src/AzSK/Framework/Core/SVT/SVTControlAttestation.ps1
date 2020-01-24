@@ -66,10 +66,18 @@ class SVTControlAttestation
 		}
 		$userChoice = ""
 		$isPrevAttested = $false;
-		if($controlResult.AttestationStatus -ne [AttestationStatus]::None)
+		if ($controlResult.AttestationStatus -ne [AttestationStatus]::None)
 		{
 			$isPrevAttested = $true;
 		}
+		#NikNOTE: Checking if state data object exists
+		<#
+			$controlResult.StateManagement | ConvertTo-Json
+			{
+				"AttestedStateData":  null,
+				"CurrentStateData":  null
+			}
+		#>
 		$tempCurrentStateObject = $null;
 		if($null -ne $controlResult.StateManagement -and $null -ne $controlResult.StateManagement.CurrentStateData)
 		{
@@ -83,6 +91,7 @@ class SVTControlAttestation
 			Write-Host "$([JsonHelper]::ConvertToPson($tempCurrentStateObject.DataObject))"
 		}
 
+		#NikNOTE: if state data object exists
 		if($isPrevAttested -and ($this.AttestControlsChoice -eq [AttestControls]::All -or $this.AttestControlsChoice -eq [AttestControls]::AlreadyAttested))
 		{
 			#Compute the effective attestation status for support backward compatibility
@@ -144,6 +153,7 @@ class SVTControlAttestation
 					$attestationState = $attestationState.Trim();
 				}
 				$attestValue = $this.GetAttestationValue($attestationState);
+				#NikNote: Set effective state after user selects attestation state
 				if($attestValue -ne [AttestationStatus]::None)
 				{
 					$controlState.AttestationStatus = $attestValue;
@@ -398,6 +408,7 @@ class SVTControlAttestation
 					[ControlState[]] $resourceControlStates = @()
 					$count = 0;
 					[SVTEventContext[]] $filteredControlItems = @()
+					#NikNote: Check which of the control of a resource can be attested
 					$resourceValue | ForEach-Object { 
 						$controlItem = $_;
 						$matchedControlItem = $false;
@@ -506,7 +517,7 @@ class SVTControlAttestation
 							}
 							Write-Host ($output | Format-Table ControlId, EvaluatedResult, EffectiveResult, AttestationChoice | Out-String) -ForegroundColor Cyan
 						}
-
+						#NikNOTE: Setting control state data after user enters user data
 						Write-Host "Committing the attestation details for this resource..." -ForegroundColor Cyan
 						$this.controlStateExtension.SetControlState($resourceValueKey, $resourceControlStates, $false)
 						Write-Host "Commit succeeded." -ForegroundColor Cyan

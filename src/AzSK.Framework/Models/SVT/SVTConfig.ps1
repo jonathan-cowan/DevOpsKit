@@ -6,14 +6,14 @@ class SVTConfig
     [bool] $IsMaintenanceMode 
     [ControlItem[]] $Controls = @();
 
-	static [SVTConfig] LoadServerConfigFile([string] $fileName, [bool] $useOnlinePolicyStore, [string] $onlineStoreUri, [bool] $enableAADAuthForOnlinePolicyStore)
+    static [SVTConfig] LoadServerConfigFile([string] $fileName, [bool] $useOnlinePolicyStore, [string] $onlineStoreUri, [bool] $enableAADAuthForOnlinePolicyStore)
     {
-		return [SVTConfig]([ConfigurationHelper]::LoadServerConfigFile($fileName, $useOnlinePolicyStore, $onlineStoreUri, $enableAADAuthForOnlinePolicyStore));
+        return [SVTConfig]([ConfigurationHelper]::LoadServerConfigFile($fileName, $useOnlinePolicyStore, $onlineStoreUri, $enableAADAuthForOnlinePolicyStore));
     }
 
     static [SVTConfig] LoadServerFileRaw([string] $fileName, [bool] $useOnlinePolicyStore, [string] $onlineStoreUri, [bool] $enableAADAuthForOnlinePolicyStore)
     {
-		return [SVTConfig]([ConfigurationHelper]::LoadServerFileRaw($fileName, $useOnlinePolicyStore, $onlineStoreUri, $enableAADAuthForOnlinePolicyStore));
+        return [SVTConfig]([ConfigurationHelper]::LoadServerFileRaw($fileName, $useOnlinePolicyStore, $onlineStoreUri, $enableAADAuthForOnlinePolicyStore));
     }
 }
 
@@ -31,15 +31,17 @@ class ControlItem
     [string] $Recommendation = ""   
     [string] $Rationale = ""   
     hidden [string[]] $DataObjectProperties = @()
-	hidden [string] $AttestComparisionType = ""
+    #NikNote: TODO: Updated code
+    hidden [string[]] $BackwardCompatibleDataObjectProperties = @()
+    hidden [string] $AttestComparisionType = ""
     hidden [FixControl] $FixControl = $null;
-	[int] $AttestationExpiryPeriodInDays
+    [int] $AttestationExpiryPeriodInDays
     [bool] $IsBaselineControl
     #add PreviewBaselineFlag
-	[bool] $IsPreviewBaselineControl;
-	[DateTime] $GraceExpiryDate
-	[int] $NewControlGracePeriodInDays
-	[int] $AttestationPeriodInDays
+    [bool] $IsPreviewBaselineControl;
+    [DateTime] $GraceExpiryDate
+    [int] $NewControlGracePeriodInDays
+    [int] $AttestationPeriodInDays
     [string[]] $ValidAttestationStates
     [string] $PolicyDefinitionGuid 
     [string] $PolicyDefnResourceIdSuffix
@@ -55,8 +57,8 @@ class FixControl
 
 enum FixControlImpact
 {
-	Critical
-	High
-	Medium
-	Low
+    Critical
+    High
+    Medium
+    Low
 }

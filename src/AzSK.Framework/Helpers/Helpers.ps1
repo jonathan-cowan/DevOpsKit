@@ -465,6 +465,7 @@ class Helpers {
     static [PSObject] SelectMembers([PSObject] $refObject, [string[]] $memberPaths) {
         $result = $null;
         if ($null -ne $refObject) {
+            #NikNote: TODO: How does it work when $refObject is Array?
             if ($refObject -is "Array") {
                 $result = @();
                 $refObject | ForEach-Object {

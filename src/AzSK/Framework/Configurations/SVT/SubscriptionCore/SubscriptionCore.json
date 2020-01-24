@@ -1,7 +1,7 @@
 {
-   "FeatureName": "SubscriptionCore",
-   "Reference": "aka.ms/azsktcp/sshealth",
-   "IsMaintenanceMode": false,
+  "FeatureName": "SubscriptionCore",
+  "Reference": "aka.ms/azsktcp/sshealth",
+  "IsMaintenanceMode": false,
   "Controls": [
     {
       "ControlID": "Azure_Subscription_AuthZ_Limit_Admin_Owner_Count",
@@ -38,6 +38,10 @@
       ],
       "Enabled": true,
       "DataObjectProperties": [
+        "Owners.SignInName",
+        "CoAdmins.SignInName"
+      ],
+      "BackwardCompatibleDataObjectProperties": [
         "Owners.ObjectId",
         "Owners.RoleDefinitionId",
         "Owners.RoleDefinitionName",
@@ -150,7 +154,6 @@
         "OwnerAccess",
         "GraphRead",
         "SubscriptionCore"
-
       ],
       "Enabled": true,
       "Rationale": "Service accounts are typically not multi-factor authentication capable. Quite often, teams who own these accounts don't exercise due care (e.g., someone may login interactively on servers using a service account exposing their credentials to attacks such as pass-the-hash, phishing, etc.) As a result, using service accounts in any privileged role in a subscription exposes the subscription to 'credential theft'-related attack vectors. (In effect, the subscription becomes accessible after just one factor (password) is compromised...this defeats the whole purpose of imposing the MFA requirement for cloud subscriptions.)"
@@ -452,11 +455,11 @@
         "Access",
         "AuthZ",
         "SubscriptionCore"
-            ],
+      ],
       "Enabled": true,
       "Rationale": "Permanent access increase the risk of a malicious user getting that access and inadvertently impacting a sensitive resource. To minimize this risk ensure that critical resources present in subscription are accessed only by the legitimate users when required. PIM facilitates this by limiting users to only assume higher privileges in a just in time (JIT) manner (or by assigning privileges for a shortened duration after which privileges are revoked automatically)."
-     },
-     {
+    },
+    {
       "ControlID": "Azure_Subscription_AuthZ_Dont_Grant_Persistent_Access_RG",
       "Description": "Permanent access should not be granted for privileged roles at resource group level",
       "Id": "SubscriptionCore282",
@@ -471,11 +474,11 @@
         "AuthZ",
         "SubscriptionCore",
         "RGPersistentAccess"
-            ],
+      ],
       "Enabled": true,
       "Rationale": "Permanent access increase the risk of a malicious user getting that access and inadvertently impacting a sensitive resource. To minimize this risk ensure that critical resources present in resource group are accessed only by the legitimate users when required. PIM facilitates this by limiting users to only assume higher privileges in a just in time (JIT) manner (or by assigning privileges for a shortened duration after which privileges are revoked automatically)."
-     },
-     {
+    },
+    {
       "ControlID": "Azure_Subscription_Config_Add_Required_Tags",
       "Description": "Mandatory tags must be set per your organization policy",
       "Id": "SubscriptionCore290",
@@ -490,7 +493,7 @@
         "AuthZ",
         "SubscriptionCore"
       ],
-      "Enabled": true,     
+      "Enabled": true,
       "Rationale": "Certain tags are expected to be present in all resources to support enterprise wide functions (e.g., security visibility based on environment, security scanning, cost optimization, etc.). The script checks for presence of such 'mandatory' and 'scenario-specific' tags. "
     },
     {
@@ -508,7 +511,7 @@
         "AuthZ",
         "SubscriptionCore"
       ],
-      "Enabled": true,     
+      "Enabled": true,
       "Rationale": "ASC standard tier enables advanced threat detection capabilities, which uses built-in behavioral analytics and machine learning to identify attacks and zero-day exploits, access and application controls to reduce exposure to network attacks and malware, and more"
     },
     {
@@ -526,7 +529,7 @@
         "AuthZ",
         "SubscriptionCore"
       ],
-      "Enabled": true,     
+      "Enabled": true,
       "Rationale": "Periodic credential rotation is a good security hygiene practice as, over time, it minimizes the likelihood of data loss/compromise which can arise from key theft/brute forcing/recovery attacks. Credential expiry can also impact availability of existing apps."
     },
     {
@@ -544,7 +547,7 @@
         "AuthZ",
         "SubscriptionCore"
       ],
-      "Enabled": true,     
+      "Enabled": true,
       "Rationale": "The regular / day to day use accounts are subject to a lot of credential theft attacks due to various activities that a user conducts using such accounts (e.g., browsing the web, clicking on email links, etc.). A user account that gets compromised (say via a phishing attack) immediately subjects the entire cloud subscription to risk if it is a member of critical roles in the subscription. Use of smartcard-backed alternate (SC-ALT) accounts instead protects the cloud subscriptions from this risk. Moreover, for complete protection, all sensitive access must be done using a secure admin workstation (SAW) and Azure Privileged Identity Management (PIM)."
     }
   ]
