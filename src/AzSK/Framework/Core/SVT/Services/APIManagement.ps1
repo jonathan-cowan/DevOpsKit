@@ -323,7 +323,7 @@ class APIManagement: AzSVTBase
 			if(($Product | Measure-Object).Count -gt 0)
 			{
 				$controlResult.AddMessage([VerificationResult]::Failed, "APIM contains sample products. Delete the two sample products: Starter and Unlimited.", $Product.ProductId) 
-				$controlResult.SetStateData("APIM service sample product", $Product.ProductId);
+				$controlResult.SetStateData("APIM service sample product", $Product);
 			}
 			else
 			{

@@ -163,6 +163,7 @@
     <Compile Include="Framework\Core\ContinuousAssurance\CAAutomation.ps1" />
     <Compile Include="Framework\Core\AzureMonitoring\LogAnalyticsMonitoring.ps1" />
     <Compile Include="Framework\Core\PrivacyNotice.ps1" />
+    <Compile Include="Framework\Core\FixControl\Services\APIManagementFix.ps1" />
     <Compile Include="Framework\Core\FixControl\Services\AppServiceFix.ps1" />
     <Compile Include="Framework\Core\FixControl\Services\StorageFix.ps1" />
     <Compile Include="Framework\Core\FixControl\Services\SQLDatabaseFix.ps1" />
